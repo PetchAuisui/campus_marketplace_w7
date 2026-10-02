@@ -45,8 +45,8 @@ class GeminiVisionService {
                   'วิเคราะห์ภาพสินค้านี้เพื่อสร้างข้อมูลสำหรับลงประกาศขายสินค้ามือสอง โดยระบุชื่อสินค้า (title), หมวดหมู่สินค้า (category), และคำอธิบายสินค้าสั้นๆ (description)',
             },
             {
-              'inline_data': {
-                'mime_type': mimeType,
+              'inlineData': {
+                'mimeType': mimeType,
                 'data': base64Image,
               },
             },
@@ -67,15 +67,33 @@ class GeminiVisionService {
       },
     });
 
-    final response = await http
-        .post(
-          uri,
-          headers: {'Content-Type': 'application/json'},
-          body: requestBody,
-        )
-        .timeout(const Duration(seconds: 60));
+    http.Response? response;
+    // กรณีที่เซิร์ฟเวอร์ตอบ 503 (Service Unavailable ชั่วคราว) ให้ลองส่งซ้ำอัตโนมัติ
+    for (int attempt = 0; attempt < 3; attempt++) {
+      try {
+        response = await http
+            .post(
+              uri,
+              headers: {'Content-Type': 'application/json'},
+              body: requestBody,
+            )
+            .timeout(const Duration(seconds: 60));
 
-    if (response.statusCode == 200) {
+        if (response.statusCode == 200) {
+          break;
+        } else if (response.statusCode == 503 && attempt < 2) {
+          await Future.delayed(Duration(seconds: 2 * (attempt + 1)));
+          continue;
+        } else {
+          break;
+        }
+      } catch (e) {
+        if (attempt == 2) rethrow;
+        await Future.delayed(const Duration(seconds: 2));
+      }
+    }
+
+    if (response != null && response.statusCode == 200) {
       // jsonDecode สองชั้น:
       // ชั้นที่ 1: แปลง response body จาก API เป็น Map
       final data = jsonDecode(response.body);
@@ -84,16 +102,31 @@ class GeminiVisionService {
         throw Exception('Gemini ไม่สามารถวิเคราะห์ภาพสินค้าได้ในครั้งนี้');
       }
       final parts = candidates.first['content']['parts'] as List<dynamic>;
-      final text = parts.first['text'] as String;
+      var text = parts.first['text'] as String;
+
+      // ลบ markdown formatting ถ้ามี
+      text = text.trim();
+      if (text.startsWith('```json')) {
+        text = text.substring(7);
+      } else if (text.startsWith('```')) {
+        text = text.substring(3);
+      }
+      if (text.endsWith('```')) {
+        text = text.substring(0, text.length - 3);
+      }
+      text = text.trim();
 
       // ชั้นที่ 2: แปลงข้อความ JSON ที่ Gemini ส่งกลับมาเป็น Map แล้วแปลงเป็น ListingDraft
       final jsonMap = jsonDecode(text) as Map<String, dynamic>;
       return ListingDraft.fromJson(jsonMap);
-    } else if (response.statusCode == 429) {
+    } else if (response != null && response.statusCode == 429) {
       throw Exception('ใช้งานเกินโควตาที่กำหนดในขณะนี้ กรุณาลองใหม่ภายหลัง');
+    } else if (response != null && response.statusCode == 503) {
+      throw Exception('เซิร์ฟเวอร์ Gemini กำลังมีผู้ใช้งานหนาแน่นชั่วคราว (รหัส 503) กรุณากดลองใหม่อีกครั้ง');
     } else {
+      final code = response?.statusCode ?? 'No response';
       throw Exception(
-        'เซิร์ฟเวอร์ Gemini ตอบกลับผิดพลาด (รหัส ${response.statusCode})',
+        'เซิร์ฟเวอร์ Gemini ตอบกลับผิดพลาด (รหัส $code)',
       );
     }
   }
