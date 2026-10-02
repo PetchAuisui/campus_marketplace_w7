@@ -6,6 +6,7 @@ import 'package:campus_marketplace_w7/main.dart';
 import 'package:campus_marketplace_w7/models/cart_model.dart';
 import 'package:campus_marketplace_w7/models/item.dart';
 import 'package:campus_marketplace_w7/models/listing_draft.dart';
+import 'package:campus_marketplace_w7/screens/sell_item_page.dart';
 import 'package:campus_marketplace_w7/repositories/item_repository.dart';
 
 class FakeItemRepository implements ItemRepository {
@@ -115,6 +116,23 @@ void main() {
       expect(draft.title, 'กระติกน้ำสแตนเลส');
       expect(draft.category, 'ของใช้ทั่วไป');
       expect(draft.description, 'กระติกน้ำเก็บความเย็น 500ml สภาพดี');
+    });
+  });
+
+  group('SellItemPage widget tests', () {
+    testWidgets('renders form fields and buttons', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: SellItemPage(),
+        ),
+      );
+      expect(find.text('ลงประกาศขายสินค้า'), findsOneWidget);
+      expect(find.text('เลือกรูปภาพสินค้า'), findsOneWidget);
+      expect(find.text('ให้ AI ช่วยแนะนำ'), findsOneWidget);
+      expect(find.text('ชื่อประกาศ'), findsOneWidget);
+      expect(find.text('หมวดหมู่'), findsOneWidget);
+      expect(find.text('คำบรรยาย'), findsOneWidget);
+      expect(find.text('ยืนยันร่างประกาศ'), findsOneWidget);
     });
   });
 }

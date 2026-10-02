@@ -14,8 +14,24 @@ class SellItemPage extends StatefulWidget {
 class _SellItemPageState extends State<SellItemPage> {
   File? _image;
   bool _isAnalyzing = false;
-  ListingDraft? _draft;
   String? _errorMessage;
+
+  // Controllers สำหรับฟอร์มทั้ง 3 ช่อง ตามขั้นตอนที่ 5.1
+  final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _categoryController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
+
+  // ตัวแปรเก็บร่างประกาศฉบับสุดท้ายใน State ตามขั้นตอนที่ 5.2
+  ListingDraft? _confirmedDraft;
+  ListingDraft? get confirmedDraft => _confirmedDraft;
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _categoryController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
 
   Future<void> _pickImage() async {
     final pickedFile = await ImagePicker().pickImage(
@@ -28,7 +44,6 @@ class _SellItemPageState extends State<SellItemPage> {
 
     setState(() {
       _image = File(pickedFile.path);
-      _draft = null;
       _errorMessage = null;
     });
   }
@@ -44,13 +59,15 @@ class _SellItemPageState extends State<SellItemPage> {
     setState(() {
       _isAnalyzing = true;
       _errorMessage = null;
-      _draft = null;
     });
 
     try {
       final draft = await GeminiVisionService().analyzeProductImage(_image!);
       setState(() {
-        _draft = draft;
+        // นำค่าที่ได้จาก AI ใส่ลงใน TextEditingController ทั้งสามช่อง
+        _titleController.text = draft.title;
+        _categoryController.text = draft.category;
+        _descriptionController.text = draft.description;
         _isAnalyzing = false;
       });
     } catch (e) {
@@ -59,6 +76,38 @@ class _SellItemPageState extends State<SellItemPage> {
         _isAnalyzing = false;
       });
     }
+  }
+
+  // ฟังก์ชันยืนยันร่างประกาศ ตามขั้นตอนที่ 5.2
+  void _confirmListing() {
+    if (_titleController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('กรุณาระบุชื่อประกาศก่อนยืนยัน')),
+      );
+      return;
+    }
+
+    // เก็บค่าจากฟอร์มเป็นร่างประกาศฉบับสุดท้ายไว้ใน State
+    final finalDraft = ListingDraft(
+      title: _titleController.text.trim(),
+      category: _categoryController.text.trim(),
+      description: _descriptionController.text.trim(),
+    );
+    _confirmedDraft = finalDraft;
+
+    // แสดง SnackBar ยืนยัน
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('บันทึกร่างประกาศเรียบร้อยแล้ว')),
+    );
+
+    // ล้างฟอร์มทั้งหมดกลับสู่สถานะว่างเปล่า พร้อมเริ่มลงประกาศใหม่
+    setState(() {
+      _image = null;
+      _titleController.clear();
+      _categoryController.clear();
+      _descriptionController.clear();
+      _errorMessage = null;
+    });
   }
 
   @override
@@ -72,6 +121,7 @@ class _SellItemPageState extends State<SellItemPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // ส่วนแสดงรูปภาพสินค้า
             if (_image != null)
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
@@ -119,7 +169,8 @@ class _SellItemPageState extends State<SellItemPage> {
               label: const Text('ให้ AI ช่วยแนะนำ'),
             ),
             const SizedBox(height: 20),
-            // แสดงสถานะ 3 แบบ: กำลังวิเคราะห์ / ผิดพลาด / สำเร็จ
+
+            // สถานะกำลังวิเคราะห์ / เกิดข้อผิดพลาด
             if (_isAnalyzing)
               const Center(
                 child: Padding(
@@ -158,80 +209,62 @@ class _SellItemPageState extends State<SellItemPage> {
                     ),
                   ),
                 ),
-              )
-            else if (_draft != null)
-              Card(
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.auto_awesome,
-                            color: Theme.of(context).primaryColor,
-                          ),
-                          const SizedBox(width: 8),
-                          const Text(
-                            'ข้อมูลแนะนำจาก AI',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const Divider(height: 24),
-                      const Text(
-                        'ชื่อสินค้า',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _draft!.title,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'หมวดหมู่',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _draft!.category,
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'คำอธิบายสินค้า',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _draft!.description,
-                        style: const TextStyle(fontSize: 15, height: 1.4),
-                      ),
-                    ],
-                  ),
-                ),
               ),
+
+            // ส่วนที่ 5.1: ฟอร์มที่แก้ไขได้ (TextField 3 ช่อง)
+            const SizedBox(height: 12),
+            const Text(
+              'ข้อมูลร่างประกาศ',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _titleController,
+              decoration: const InputDecoration(
+                labelText: 'ชื่อประกาศ',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.title),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _categoryController,
+              decoration: const InputDecoration(
+                labelText: 'หมวดหมู่',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.category),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _descriptionController,
+              maxLines: 4,
+              decoration: const InputDecoration(
+                labelText: 'คำบรรยาย',
+                border: OutlineInputBorder(),
+                alignLabelWithHint: true,
+                prefixIcon: Icon(Icons.description),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // ส่วนที่ 5.2: ปุ่ม "ยืนยันร่างประกาศ"
+            ElevatedButton(
+              onPressed: _confirmListing,
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                backgroundColor: Theme.of(context).primaryColor,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text(
+                'ยืนยันร่างประกาศ',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ),
+            const SizedBox(height: 24),
           ],
         ),
       ),
