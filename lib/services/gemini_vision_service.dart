@@ -27,7 +27,10 @@ class GeminiVisionService {
     }
   }
 
-  Future<ListingDraft> analyzeProductImage(File imageFile) async {
+  Future<ListingDraft> analyzeProductImage(
+    File imageFile, [
+    String? prompt,
+  ]) async {
     final uri = Uri.parse('$_baseUrl?key=$_apiKey');
 
     // 1. อ่านไฟล์ภาพเป็นไบต์ และเข้ารหัสเป็น Base64
@@ -35,14 +38,16 @@ class GeminiVisionService {
     final base64Image = base64Encode(bytes);
     final mimeType = _getMimeType(imageFile.path);
 
+    final effectivePrompt = prompt ??
+        'วิเคราะห์ภาพสินค้านี้เพื่อสร้างข้อมูลสำหรับลงประกาศขายสินค้ามือสอง โดยระบุชื่อสินค้า (title), หมวดหมู่สินค้า (category), และคำอธิบายสินค้าสั้นๆ (description)';
+
     // 2. ส่งพร้อม Prompt ใน parts เดียวกัน และใช้ responseSchema บังคับให้ได้ JSON
     final requestBody = jsonEncode({
       'contents': [
         {
           'parts': [
             {
-              'text':
-                  'วิเคราะห์ภาพสินค้านี้เพื่อสร้างข้อมูลสำหรับลงประกาศขายสินค้ามือสอง โดยระบุชื่อสินค้า (title), หมวดหมู่สินค้า (category), และคำอธิบายสินค้าสั้นๆ (description)',
+              'text': effectivePrompt,
             },
             {
               'inlineData': {
@@ -99,9 +104,27 @@ class GeminiVisionService {
       final data = jsonDecode(response.body);
       final candidates = data['candidates'] as List<dynamic>?;
       if (candidates == null || candidates.isEmpty) {
-        throw Exception('Gemini ไม่สามารถวิเคราะห์ภาพสินค้าได้ในครั้งนี้');
+        throw Exception(
+          'AI ไม่สามารถวิเคราะห์ภาพนี้ได้ อาจเข้าข่ายเนื้อหาที่ไม่เหมาะสม ลองใช้ภาพอื่น',
+        );
       }
-      final parts = candidates.first['content']['parts'] as List<dynamic>;
+
+      final candidate = candidates.first as Map<String, dynamic>;
+      final finishReason = candidate['finishReason'] as String?;
+      if (finishReason == 'SAFETY') {
+        throw Exception(
+          'เนื้อหาที่วิเคราะห์เข้าข่ายไม่ปลอดภัยตามนโยบายของ Gemini กรุณาใช้ภาพอื่น',
+        );
+      }
+
+      final content = candidate['content'] as Map<String, dynamic>?;
+      final parts = content?['parts'] as List<dynamic>?;
+      if (parts == null || parts.isEmpty) {
+        throw Exception(
+          'AI ไม่สามารถวิเคราะห์ภาพนี้ได้ อาจเข้าข่ายเนื้อหาที่ไม่เหมาะสม ลองใช้ภาพอื่น',
+        );
+      }
+
       var text = parts.first['text'] as String;
 
       // ลบ markdown formatting ถ้ามี
@@ -122,7 +145,9 @@ class GeminiVisionService {
     } else if (response != null && response.statusCode == 429) {
       throw Exception('ใช้งานเกินโควตาที่กำหนดในขณะนี้ กรุณาลองใหม่ภายหลัง');
     } else if (response != null && response.statusCode == 503) {
-      throw Exception('เซิร์ฟเวอร์ Gemini กำลังมีผู้ใช้งานหนาแน่นชั่วคราว (รหัส 503) กรุณากดลองใหม่อีกครั้ง');
+      throw Exception(
+        'เซิร์ฟเวอร์ Gemini กำลังมีผู้ใช้งานหนาแน่นชั่วคราว (รหัส 503) กรุณากดลองใหม่อีกครั้ง',
+      );
     } else {
       final code = response?.statusCode ?? 'No response';
       throw Exception(

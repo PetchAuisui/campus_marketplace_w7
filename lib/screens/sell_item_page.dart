@@ -33,6 +33,11 @@ class _SellItemPageState extends State<SellItemPage> {
     super.dispose();
   }
 
+  // Prompt ใช้งานจริงตามส่วนที่ 4 (เปลี่ยนกลับเรียบร้อยหลังทำ Checkpoint 6.1)
+  static const _prompt = '''
+วิเคราะห์ภาพสินค้านี้เพื่อสร้างข้อมูลสำหรับลงประกาศขายสินค้ามือสอง โดยระบุชื่อสินค้า (title), หมวดหมู่สินค้า (category), และคำอธิบายสินค้าสั้นๆ (description)
+''';
+
   Future<void> _pickImage() async {
     final pickedFile = await ImagePicker().pickImage(
       source: ImageSource.gallery,
@@ -62,7 +67,10 @@ class _SellItemPageState extends State<SellItemPage> {
     });
 
     try {
-      final draft = await GeminiVisionService().analyzeProductImage(_image!);
+      final draft = await GeminiVisionService().analyzeProductImage(
+        _image!,
+        _prompt,
+      );
       setState(() {
         // นำค่าที่ได้จาก AI ใส่ลงใน TextEditingController ทั้งสามช่อง
         _titleController.text = draft.title;
