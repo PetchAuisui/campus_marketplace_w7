@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:campus_marketplace_w7/main.dart';
 import 'package:campus_marketplace_w7/models/cart_model.dart';
 import 'package:campus_marketplace_w7/models/item.dart';
+import 'package:campus_marketplace_w7/models/listing_draft.dart';
 import 'package:campus_marketplace_w7/repositories/item_repository.dart';
 
 class FakeItemRepository implements ItemRepository {
@@ -102,4 +103,19 @@ void main() {
       expect(find.text('เพิ่ม "Test Product" ลงตะกร้าแล้ว'), findsOneWidget);
     });
   });
+
+  group('ListingDraft unit tests', () {
+    test('fromJson parses correctly', () {
+      final json = {
+        'title': 'กระติกน้ำสแตนเลส',
+        'category': 'ของใช้ทั่วไป',
+        'description': 'กระติกน้ำเก็บความเย็น 500ml สภาพดี',
+      };
+      final draft = ListingDraft.fromJson(json);
+      expect(draft.title, 'กระติกน้ำสแตนเลส');
+      expect(draft.category, 'ของใช้ทั่วไป');
+      expect(draft.description, 'กระติกน้ำเก็บความเย็น 500ml สภาพดี');
+    });
+  });
 }
+
