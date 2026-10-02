@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
 
 import 'package:campus_marketplace_w7/main.dart';
 import 'package:campus_marketplace_w7/models/cart_model.dart';
@@ -63,7 +64,12 @@ void main() {
     ) async {
       final fakeRepo = FakeItemRepository([testItem]);
 
-      await tester.pumpWidget(MyApp(repository: fakeRepo));
+      await tester.pumpWidget(
+        ChangeNotifierProvider(
+          create: (_) => CartModel(),
+          child: MyApp(repository: fakeRepo),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Campus Marketplace'), findsOneWidget);
@@ -77,7 +83,12 @@ void main() {
     ) async {
       final fakeRepo = FakeItemRepository([testItem]);
 
-      await tester.pumpWidget(MyApp(repository: fakeRepo));
+      await tester.pumpWidget(
+        ChangeNotifierProvider(
+          create: (_) => CartModel(),
+          child: MyApp(repository: fakeRepo),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('0'), findsOneWidget);
