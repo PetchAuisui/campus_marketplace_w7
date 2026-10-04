@@ -3,9 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/listing_draft.dart';
 import '../services/gemini_vision_service.dart';
+import '../repositories/listing_draft_repository.dart';
+import 'my_drafts_page.dart';
 
 class SellItemPage extends StatefulWidget {
-  const SellItemPage({super.key});
+  final ListingDraftRepository draftRepository;
+
+  const SellItemPage({super.key, required this.draftRepository});
 
   @override
   State<SellItemPage> createState() => _SellItemPageState();
@@ -87,35 +91,55 @@ class _SellItemPageState extends State<SellItemPage> {
   }
 
   // ฟังก์ชันยืนยันร่างประกาศ ตามขั้นตอนที่ 5.2
-  void _confirmListing() {
+  Future<void> _confirmListing() async {
     if (_titleController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('กรุณาระบุชื่อประกาศก่อนยืนยัน')),
       );
       return;
     }
+    
+    if (_image == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('กรุณาเลือกรูปภาพก่อนยืนยัน')),
+      );
+      return;
+    }
 
-    // เก็บค่าจากฟอร์มเป็นร่างประกาศฉบับสุดท้ายไว้ใน State
-    final finalDraft = ListingDraft(
-      title: _titleController.text.trim(),
-      category: _categoryController.text.trim(),
-      description: _descriptionController.text.trim(),
-    );
-    _confirmedDraft = finalDraft;
-
-    // แสดง SnackBar ยืนยัน
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('บันทึกร่างประกาศเรียบร้อยแล้ว')),
-    );
-
-    // ล้างฟอร์มทั้งหมดกลับสู่สถานะว่างเปล่า พร้อมเริ่มลงประกาศใหม่
     setState(() {
-      _image = null;
-      _titleController.clear();
-      _categoryController.clear();
-      _descriptionController.clear();
+      _isAnalyzing = true;
       _errorMessage = null;
     });
+
+    try {
+      final draft = ListingDraft(
+        title: _titleController.text.trim(),
+        category: _categoryController.text.trim(),
+        description: _descriptionController.text.trim(),
+      );
+
+      await widget.draftRepository.saveDraft(draft, _image!.path);
+      
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('บันทึกร่างประกาศเรียบร้อยแล้ว')),
+      );
+
+      setState(() {
+        _image = null;
+        _titleController.clear();
+        _categoryController.clear();
+        _descriptionController.clear();
+        _errorMessage = null;
+        _isAnalyzing = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = e.toString();
+        _isAnalyzing = false;
+      });
+    }
   }
 
   @override
@@ -123,6 +147,21 @@ class _SellItemPageState extends State<SellItemPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('ลงประกาศขายสินค้า'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.history),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => MyDraftsPage(
+                    draftRepository: widget.draftRepository,
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
