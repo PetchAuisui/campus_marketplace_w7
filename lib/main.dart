@@ -2,16 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'database/app_database.dart';
 import 'models/cart_model.dart';
-import 'screens/main_scaffold.dart';
 import 'repositories/item_repository.dart';
 import 'repositories/item_repository_api.dart';
 import 'repositories/favorites_repository_drift.dart';
 import 'repositories/listing_draft_repository_drift.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+import 'screens/auth_gate.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final db = AppDatabase();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
+  final db = AppDatabase();
   runApp(
     ChangeNotifierProvider(
       create: (context) => CartModel(),
@@ -32,8 +35,8 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Campus Marketplace',
       debugShowCheckedModeBanner: false,
-      home: MainScaffold(
-        itemRepository: repository ?? ItemRepositoryApi(),
+      home: AuthGate(
+        itemRepositories: [repository ?? ItemRepositoryApi()],
         favoritesRepository: FavoritesRepositoryDrift(database),
         draftRepository: ListingDraftRepositoryDrift(database),
       ),

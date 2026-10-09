@@ -22,10 +22,23 @@
 	<string>$(FLUTTER_BUILD_NAME)</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.1017449721651-0oiat1gnliuvd2l2elvuhk34si2vk42b</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>GIDClientID</key>
+	<string>1017449721651-0oiat1gnliuvd2l2elvuhk34si2vk42b.apps.googleusercontent.com</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>แอปนี้ต้องการเข้าถึงคลังภาพของคุณ เพื่อให้คุณเลือกรูปสินค้าสำหรับลงประกาศขาย</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -66,7 +79,5 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>แอปนี้ต้องการเข้าถึงคลังภาพของคุณ เพื่อให้คุณเลือกรูปสินค้าสำหรับลงประกาศขาย</string>
 </dict>
 </plist>
