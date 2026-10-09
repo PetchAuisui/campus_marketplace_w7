@@ -4,6 +4,7 @@ import 'database/app_database.dart';
 import 'models/cart_model.dart';
 import 'repositories/item_repository.dart';
 import 'repositories/item_repository_api.dart';
+import 'repositories/item_repository_firestore.dart';
 import 'repositories/favorites_repository_drift.dart';
 import 'repositories/listing_draft_repository_drift.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -36,7 +37,10 @@ class MyApp extends StatelessWidget {
       title: 'Campus Marketplace',
       debugShowCheckedModeBanner: false,
       home: AuthGate(
-        itemRepositories: [repository ?? ItemRepositoryApi()],
+        itemRepositories: [
+          repository ?? ItemRepositoryApi(),
+          ItemRepositoryFirestore(),
+        ],
         favoritesRepository: FavoritesRepositoryDrift(database),
         draftRepository: ListingDraftRepositoryDrift(database),
       ),

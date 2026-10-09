@@ -1,6 +1,10 @@
 import 'dart:io';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../models/item.dart';
+import '../repositories/item_repository_firestore.dart';
 import '../repositories/listing_draft_repository.dart';
+import '../services/storage_service.dart';
 import '../database/app_database.dart';
 
 class MyDraftsPage extends StatefulWidget {
@@ -34,6 +38,102 @@ class _MyDraftsPageState extends State<MyDraftsPage> {
       const SnackBar(content: Text('ลบร่างประกาศแล้ว')),
     );
     _loadDrafts(); // รีโหลดหลังจากลบ
+  }
+
+  Future<double?> _askPrice() {
+    final controller = TextEditingController();
+    String? errorText;
+    return showDialog<double>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('ระบุราคาสินค้า'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: InputDecoration(
+              labelText: 'ราคา (บาท)',
+              errorText: errorText,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('ยกเลิก'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final price = double.tryParse(controller.text.trim());
+                if (price == null || price <= 0) {
+                  setDialogState(
+                      () => errorText = 'กรุณากรอกตัวเลขที่มากกว่า 0');
+                  return;
+                }
+                Navigator.pop(context, price);
+              },
+              child: const Text('ตกลง'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _publishDraft(ListingDraftRow draft) async {
+    if (draft.imagePath.isNotEmpty && !File(draft.imagePath).existsSync()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('ไม่พบไฟล์รูปของร่างนี้ กรุณาลบร่างแล้วสร้างใหม่'),
+        ),
+      );
+      return;
+    }
+    final price = await _askPrice();
+    if (price == null || !mounted) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      final sellerId = FirebaseAuth.instance.currentUser!.uid;
+
+      var imageUrl = '';
+      if (draft.imagePath.isNotEmpty) {
+        // ต้องได้ URL ก่อน แล้วค่อยเขียน Firestore
+        imageUrl = await StorageService()
+            .uploadListingImage(File(draft.imagePath), sellerId);
+      }
+
+      final item = Item(
+        id: DateTime.now().millisecondsSinceEpoch,
+        title: draft.title,
+        price: price,
+        description: draft.description,
+        category: draft.category,
+        imageUrl: imageUrl,
+        sellerId: sellerId,
+      );
+      await ItemRepositoryFirestore().postItem(item);
+      await widget.draftRepository.deleteDraft(draft.id);
+
+      if (!mounted) return;
+      Navigator.pop(context); // ปิด Progress Indicator
+      messenger.showSnackBar(
+        const SnackBar(content: Text('โพสต์ขายสำเร็จแล้ว')),
+      );
+      _loadDrafts();
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context);
+      messenger.showSnackBar(
+        SnackBar(content: Text('โพสต์ไม่สำเร็จ: $e')),
+      );
+    }
   }
 
   @override
@@ -127,9 +227,20 @@ class _MyDraftsPageState extends State<MyDraftsPage> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   isThreeLine: true,
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () => _deleteDraft(draft.id),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.cloud_upload,
+                            color: Colors.green),
+                        tooltip: 'โพสต์ขายจริง',
+                        onPressed: () => _publishDraft(draft),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        onPressed: () => _deleteDraft(draft.id),
+                      ),
+                    ],
                   ),
                 ),
               );

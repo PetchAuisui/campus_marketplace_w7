@@ -154,16 +154,6 @@ class ItemRepositoryApi implements ItemRepository {
           'https://m.media-amazon.com/images/I/81rus0UFhsL._AC_SX679_.jpg',
     ),
     Item(
-      id: 15,
-      title: 'BIYLACLESEN Women\'s 3-in-1 Snowboard Jacket Winter Coats',
-      price: 56.99,
-      description:
-          'Note:The Jackets is US standard size, Please choose size as your usual wear Material: 100% Polyester; Detachable Liner Fabric: Warm Fleece. Detachable Functional Liner: Skin Friendly, Lightweigt and Warm.Stand Collar Liner jacket, keep you warm in cold weather. Zippered Pockets: 2 Zippered Hand Pockets, 2 Zippered Pockets on Chest (enough to keep cards or keys)and 1 Hidden Pocket Inside.',
-      category: "women's clothing",
-      imageUrl:
-          'https://m.media-amazon.com/images/I/51Y5BLRVC9L._AC_UX679_.jpg',
-    ),
-    Item(
       id: 16,
       title:
           'Lock and Love Women\'s Removable Hooded Faux Leather Moto Biker Jacket',
@@ -193,16 +183,6 @@ class ItemRepositoryApi implements ItemRepository {
       category: "women's clothing",
       imageUrl:
           'https://m.media-amazon.com/images/I/71z3kpMAYsL._AC_UY879_.jpg',
-    ),
-    Item(
-      id: 19,
-      title: 'Opna Women\'s Short Sleeve Moisture',
-      price: 7.95,
-      description:
-          '100% Polyester, Machine wash, 100% cationic polyester interlock, Machine Wash & Pre Shrunk for a Great Fit, Lightweight, roomy and highly breathable with moisture wicking fabric which helps to keep moisture away, Soft Lightweight Fabric with comfortable V-neck collar and a slimmer fit, delivers a sleek, more feminine silhouette and Added Comfort',
-      category: "women's clothing",
-      imageUrl:
-          'https://m.media-amazon.com/images/I/51eg55WUexL._AC_UX679_.jpg',
     ),
     Item(
       id: 20,

@@ -5,6 +5,7 @@ class Item {
   final String description;
   final String category;
   final String imageUrl;
+  final String? sellerId;
 
   const Item({
     required this.id,
@@ -13,6 +14,7 @@ class Item {
     required this.description,
     required this.category,
     required this.imageUrl,
+    this.sellerId,
   });
 
   factory Item.fromJson(Map<String, dynamic> json) {
@@ -31,6 +33,32 @@ class Item {
       description: description,
       category: category,
       imageUrl: imageUrl,
+      sellerId: json['sellerId'] as String?,
     );
+  }
+
+  factory Item.fromFirestore(Map<String, dynamic> data, [String? docId]) {
+    return Item(
+      id: data['id'] is int ? data['id'] as int : (docId != null ? docId.hashCode : 0),
+      title: data['title'] as String? ?? '',
+      price: (data['price'] as num?)?.toDouble() ?? 0.0,
+      description: data['description'] as String? ?? '',
+      category: data['category'] as String? ?? '',
+      imageUrl:
+          (data['imageUrl'] as String? ?? data['image'] as String? ?? '').trim(),
+      sellerId: data['sellerId'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toFirestore() {
+    return {
+      'id': id,
+      'title': title,
+      'price': price,
+      'description': description,
+      'category': category,
+      'imageUrl': imageUrl,
+      if (sellerId != null) 'sellerId': sellerId,
+    };
   }
 }

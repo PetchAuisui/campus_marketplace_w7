@@ -10,12 +10,12 @@ import '../services/auth_service.dart';
 import 'checkout_page.dart';
 
 class HomePage extends StatefulWidget {
-  final ItemRepository repository;
+  final List<ItemRepository> repositories;
   final FavoritesRepository favoritesRepository;
 
   const HomePage({
     super.key,
-    required this.repository,
+    required this.repositories,
     required this.favoritesRepository,
   });
 
@@ -29,7 +29,13 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    _itemsFuture = widget.repository.getItems();
+    _loadItems();
+  }
+
+  void _loadItems() {
+    _itemsFuture = Future.wait(
+      widget.repositories.map((repo) => repo.getItems()),
+    ).then((listOfLists) => listOfLists.expand((list) => list).toList());
   }
 
   @override
@@ -125,16 +131,80 @@ class _HomePageState extends State<HomePage> {
                   itemCount: items.length,
                   itemBuilder: (context, index) {
                     final item = items[index];
+                    final isStudentPost = item.sellerId != null && item.sellerId!.isNotEmpty;
                     return ListTile(
-                      leading: Image.network(
-                        item.imageUrl,
-                        width: 48,
-                        height: 48,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) =>
-                            const Icon(Icons.broken_image),
+                      leading: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              item.imageUrl,
+                              width: 52,
+                              height: 52,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  Container(
+                                    width: 52,
+                                    height: 52,
+                                    color: Colors.grey[200],
+                                    child: const Icon(Icons.broken_image, color: Colors.grey),
+                                  ),
+                            ),
+                          ),
+                          Positioned(
+                            bottom: -4,
+                            right: -4,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: isStudentPost ? Colors.deepPurple : Colors.blueGrey,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                isStudentPost ? '🎓' : '🏪',
+                                style: const TextStyle(fontSize: 10),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      title: Text(item.title),
+                      title: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              item.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: isStudentPost
+                                  ? Colors.deepPurple.shade50
+                                  : Colors.blue.shade50,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: isStudentPost
+                                    ? Colors.deepPurple.shade200
+                                    : Colors.blue.shade200,
+                              ),
+                            ),
+                            child: Text(
+                              isStudentPost ? '🎓 นักศึกษา' : '🏪 API ร้านค้า',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: isStudentPost
+                                    ? Colors.deepPurple.shade800
+                                    : Colors.blue.shade800,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                       subtitle: Text('${item.price} บาท'),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
